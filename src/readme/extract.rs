@@ -69,7 +69,7 @@ fn extract_docs_multiline_style<R: Read>(
             }
         }
 
-        result.push(line.trim_right().to_owned());
+        result.push(line.trim_end_matches("\n").to_owned());
     }
 
     Ok(result)
@@ -83,7 +83,7 @@ fn normalize_line(mut line: String) -> String {
     } else {
         // if the first character after the comment mark is " ", remove it
         let split_at = if line.find(" ") == Some(3) { 4 } else { 3 };
-        line.split_at(split_at).1.trim_right().to_owned()
+        line.split_at(split_at).1.trim_end_matches("\n").to_owned()
     }
 }
 
@@ -93,15 +93,15 @@ mod tests {
     use std::io::Cursor;
 
     const EXPECTED: &[&str] = &[
-        "first line",
+        "first line ",
         "",
-        "```",
-        "let rust_code = \"safe\";",
-        "```",
+        "``` ",
+        "let rust_code = \"safe\"; ",
+        "``` ",
         "",
-        "```C",
-        "int i = 0; // no rust code",
-        "```",
+        "```C ",
+        "int i = 0; // no rust code ",
+        "``` ",
     ];
 
     const INPUT_SINGLELINE: &str = "\
@@ -155,14 +155,14 @@ mod tests {
     #[test]
     fn extract_docs_mix_styles_singleline() {
         let input = Cursor::new(INPUT_MIXED_SINGLELINE.as_bytes());
-        let expected = "singleline";
+        let expected = "singleline ";
         let result = extract_docs(input).unwrap();
         assert_eq!(result, &[expected])
     }
 
     const INPUT_MIXED_MULTILINE: &str = "\
                                          /*! \n\
-                                         multiline \n\
+                                         multiline\n\
                                          */ \n\
                                          //! singleline";
 
@@ -175,13 +175,13 @@ mod tests {
     }
 
     const INPUT_MULTILINE_NESTED_1: &str = "\
-                                            /*! \n\
-                                            level 0 \n\
-                                            /* \n\
-                                            level 1 \n\
-                                            */ \n\
-                                            level 0 \n\
-                                            */ \n\
+                                            /*!\n\
+                                            level 0\n\
+                                            /*\n\
+                                            level 1\n\
+                                            */\n\
+                                            level 0\n\
+                                            */\n\
                                             fn main() {}";
 
     const EXPECTED_MULTILINE_NESTED_1: &[&str] = &["level 0", "/*", "level 1", "*/", "level 0"];
@@ -194,17 +194,17 @@ mod tests {
     }
 
     const INPUT_MULTILINE_NESTED_2: &str = "\
-                                            /*! \n\
-                                            level 0 \n\
-                                            /* \n\
-                                            level 1 \n\
-                                            /* \n\
-                                            level 2 \n\
-                                            */ \n\
-                                            level 1 \n\
-                                            */ \n\
-                                            level 0 \n\
-                                            */ \n\
+                                            /*!\n\
+                                            level 0\n\
+                                            /*\n\
+                                            level 1\n\
+                                            /*\n\
+                                            level 2\n\
+                                            */\n\
+                                            level 1\n\
+                                            */\n\
+                                            level 0\n\
+                                            */\n\
                                             fn main() {}";
 
     const EXPECTED_MULTILINE_NESTED_2: &[&str] = &[
